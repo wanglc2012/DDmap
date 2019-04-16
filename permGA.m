@@ -1,21 +1,34 @@
-function [tt,g,f_opt,u,v,w]=permGA4(A,B,C,op)
+
+function [tt,g,f_opt,u,v,w]=permGA(A,B,C,op)
 % 
-% 功能：求解双消化问题DDP(A,B,C)
-% 输入：三个有序多重集合A,B,C
-%           遗传算子类型集合 op=[
-%                          1 置换复合交叉
-%                          2 参考保序交叉
-%                          3 单点变异
-%                          4 片段翻转
-%                          5 片段移位]
-% 输出：进化计算用时tt, 进化代数g, 最优适应值f_opt
-%           双消化问题的解，用三个置换(u,v,w)表示
+%Function: solve double digestion problem DDP(A,B,C)
+%Input: three ordered multiple sets A,B, and C
+%Set of genetic operator types op=[
+%                          1 PCC
+%                          2 RSC
+%                          3 P4X
+%                          4 FLP
+%                          5 CSH]
+% output: evolution computation time tt, evolution generations g, optimal fitness value f_opt
+%The solution to the DDP ,it is represented by three permutation(u,v,w)
 %
 
-% 初始化
+
+
+
+%  Initialization
 tt=0;g=0;f_opt=0;u=[];v=[];w=[];
 
-% 解析输入实例
+% op=[];
+% op=input('please input op:' );
+% op=[1,2,3,4,5,6,7];
+% A =[ 1     1     2     2     2     4     4     5     5     6     6     7     8];
+% B =[ 1     3     3     4     6    14    22];
+% C =[1     1     1     1     1     2     2     2     2     2     2     3     3     4     4     5     5     6     6];
+
+
+
+% Analyze input instances
 m=length(A);n=length(B);k=length(C);
 if m<2
     disp('Error: A is too short');
@@ -32,7 +45,7 @@ if k<2
     g=0;f_opt=0;u=[];v=[];
     return
 end
-% 修补序列长度
+% Repair sequence length
 ZZ=[];
 if k>m+n-1
     L=k-(m+n-1);
@@ -46,13 +59,13 @@ else
     k=k+L;
 end
 
-% 设定遗传概率、种群规模和最大进化代数
+% Set genetic probability, population size and maximum evolution generation
 pc=0.85;
 pm=2/(m+n);pm_gap=(0.55-pm)/200;
 pop=50;maxG=10000;
 
-% 种群初始化
-% 用两个元胞数组bu,bv表示变长染色体种群
+% InitializE Population 
+% bu and bv were used to represent variable-length chromosome population
 bu=cell(1,pop);
 bv=cell(1,pop);
 for i=1:pop
@@ -61,167 +74,237 @@ for i=1:pop
     bv{i}=randperm(n);
 end
 
-% 进化开始
+% Evolution began
 tic
 g=0;f_opt=0;i_opt=0;f(1:pop)=0;Loop=1;gf=[];
 while (Loop==1)    
     for i=1:pop
-        % 染色体解码
+        % Chromosome decoding
         u=bu{i};v=bv{i};
-        % 适应值计算
+        % Calculate the fitness value
         f(i)=DD_fitness(A,B,C,u,v);        
-        % 择优
+        % Select excellent individual
         if f(i)>f_opt
             f_opt=f(i);
             i_opt=i;
         end
     end
-    % 保优    
+    % Preserve excellent individual
     bu_opt=[];bu_opt=bu{i_opt};
     bv_opt=[];bv_opt=bv{i_opt};
     g=g+1;
-    % 显示当代最优值
+    % Shows contemporary optimal values
     %disp('--------- optimal fitness of current generation ---------');
     %str=sprintf('%d    %f', g, f_opt);
     %disp(str);
     gf(g)=f_opt;
+   
+  
     
     if (f_opt<1) && (g<maxG)       
         
-        % 改进的赌轮选择算子,只需旋转一次即可完成全部选择,而且它确保每一代的最优个体不会被淘汰
-	    % 计算每一个体被选择的概率
+        %Improved wheel selection operator, only need to rotate once to complete all the selection, and it ensures that each generation of the best individual will not be eliminated
+        %Calculate the probability of each individual being selected
 	    fp=f./sum(f);
-	    % 计算赌轮间距
+	    % Calculate the wheel spacing
         pop_choose=round(pop*0.8);
 	    gap=1.0/pop_choose;
-	    %计算赌轮随机起始点
+	    %Calculate the random start point of the roulette wheel
 	    toss=rand*gap;
 	    j=0;jf=0.0;i=0;
 	    while(i<pop_choose)
 		    j=j+1;
 		    if j>pop
-			    % 越界,重转赌轮
+			    %Over the border, turn the wheel again
 			    toss=rand*gap;
 			    j=1;jf=0.0;
 		    end
     	    jf=jf+fp(j);
-    	    if toss<jf
-			    % 选择第j个个体
+    	     if toss<jf
+			    % Select the Jth individual
                 i = i + 1;
                 bu{i}=bu{j};bv{i}=bv{j};
         	    toss = toss + gap;
-            end
+             end
         end
-        % 引入新的随机个体
+        % Introduce new random individuals
         for i=pop_choose+1:pop-1
             bu{i}=randperm(m);
             bv{i}=randperm(n);
         end
-        % 保优
+        % Preserve excellent individual
         bu{pop}=bu_opt;
         bv{pop}=bv_opt;
         
-        % 执行交叉
-        for i=1:2:pop_choose
-            % 染色体副本制备
+       
+        % execute crossover
+       
+        
+        
+        for i=1:2:pop
+            % Copy preparation
             xu=[];xv=[];yu=[];yv=[];
             xu=bu{i};xv=bv{i};
-            yu=bu{i+1};yv=bv{i+1};            
+            yu=bu{i+1};yv=bv{i+1}; 
            
-            if ismember(1,op)                
-            % 置换复合交叉
+if ismember(1,op)                
+            % PCC
+%             a=1
             r=rand;
             if r<pc
                 bu{i}=xu(yu);bu{i+1}=yu(xu);
                 bv{i}=xv(yv);bv{i+1}=yv(xv);
             end
-            end
-            
-            if ismember(2,op)
-            % 参考保序交叉
+end
+
+if ismember(2,op)
+%      b=2
+            % RSC
             r=rand;
             if r<pc
-                j=randint(2,m-1);
+                j=randi([2,m-1]);
                 [xu,yu]=opPermCross(A,xu,yu,j);
-                bu{i}=xu;bu{i+1}=yu;
+                bu{i}=xu;bu{i+1}=yu; 
             end
             r=rand;
             if r<pc
-                j=randint(2,n-1);
+                j=randi([2,n-1]);
                 [xv,yv]=opPermCross(B,xv,yv,j);
                 bv{i}=xv;bv{i+1}=yv;
             end
-            end
+end
+
+
+if ismember(7,op)
+ 
+L=length(xu);
+Oi=zeros(1,L);
+Oj=zeros(1,L);
+Xi=xu;
+Xj=yu;
+for k=1:L
+    r=rand;
+    if Xi(k)==Xj(k)
+        Oi(k)=Xi(k);
+        Oj(k)=Xi(k);
+    else if r<=0.5
+         Oi(k)=Xj(k);
+         Oj(k)=Xi(k);
+            else 
+            Oi(k)=Xi(k);
+            Oj(k)=Xj(k);
         end
+           end
+end
+end        
         
-        % 执行变异
-        for i=1:pop_choose
-            % 染色体副本制备
+        
+        end
+            
+        
+        % execute muation
+        for i=1:pop
+            % Copy preparation
             xu=[];xv=[];
             xu=bu{i};xv=bv{i}; 
-            
-            if ismember(3,op)
-            % 单点变异
+           
+if ismember(3,op)
+  
+            % P4X
             r=rand;
             if r<pm
-                j1=randint(1,m);j2=randint(1,m);
+                j1=randi([1,m]);j2=randi([1,m]);
                 t=xu(j1);xu(j1)=xu(j2);xu(j2)=t;
             end
             r=rand;
             if r<pm
-                j1=randint(1,n);j2=randint(1,n);
+                j1=randi([1,n]);j2=randi([1,n]);
                 t=xv(j1);xv(j1)=xv(j2);xv(j2)=t;
             end  
-            end            
+end  
 
-            if ismember(4,op)
-            % 片段翻转
+if ismember(4,op)
+%     d=4
+            % FLP
             p=length(xu);q=length(xv);
-            k2=randint(1,p);k1=randint(1,k2);L=k2-k1+1;
+            k2=randi([1,p]);k1=randi([1,k2]);L=k2-k1+1;
             r=rand;
             if r<pm
                 xu(k1:1:k2)=xu(k2:-1:k1);
             end
-            k2=randint(1,q);k1=randint(1,k2);L=k2-k1+1;
+            k2=randi([1,q]);k1=randi([1,k2]);L=k2-k1+1;
             r=rand;
             if r<pm
                 xv(k1:1:k2)=xv(k2:-1:k1);
             end
-            end
             
-            if ismember(5,op)
-            % 片段循环移位
+end
+
+
+
+if ismember(5,op)
+%     e=5
+            % CSH
             p=length(xu);q=length(xv);
-            k2=randint(1,p);k1=randint(1,k2);L=k2-k1+1;
+            k2=randi([1,p]);k1=randi([1,k2]);L=k2-k1+1;
             r=rand;
             if r<pm
                 t=xu(k1);
                 xu(k1:k2-1)=xu(k1+1:k2);
                 xu(k2)=t;
+                ma=1;
             end
-            k2=randint(1,q);k1=randint(1,k2);L=k2-k1+1;
+           k2=randi([1,q]);k1=randi([1,k2]);L=k2-k1+1;
             r=rand;
-            if r<pm
+            if r>pm
                 t=xv(k1);
                 xv(k1:k2-1)=xv(k1+1:k2);
                 xv(k2)=t;
             end
-            end
+       
+end
 
-            % 保存变异结果
+ 
+
+if ismember(6,op)
+%     f=6
+      % 2005 S-K muation
+      A=xu;
+     for i=1:m 
+            r=rand;
+            if r<pm
+                j=randi([1,m]);
+                t=A(i); A(i)=A(j);A(j)=t;
+            end
+            pm_gap=(0.45-pm)/200;
+            pm=pm+pm_gap;
+        if pm>=0.45
+            pm=pm-pm_gap;
+            if pm<2/(m+n)
+               pm=2/(m+n); 
+            end
+        end
+     end
+end
+
+
+            % Preserve muation results
             bu{i}=xu;bv{i}=xv;            
         end
-        % 修正变异概率
+        % Modified muation probability 
         pm=pm+pm_gap;
         if pm>=0.55
             pm=2/(m+n);
         end
     else
         Loop=0;
-    end
+
 end
+end
+    
+
 tt=toc;
-% 最优染色体解码
+% Optimal chromosome decoding
 u=bu{i_opt};
 v=bv{i_opt};
 w=ddseq(A,B,C,u,v);
@@ -230,25 +313,27 @@ disp('[time gen fitness]=');
 disp([tt, g, f_opt]);
 return
 
+
+
 function [f]=DD_fitness(A,B,C,u,v)
-% 计算(u,v)的适应值
-% 初始化
+% Calculate the fitness value of (u,v)
+% initialization
 uA=[];vB=[];SuA=[];SvB=[];A_B=[];F=[];
-% 按置换u重新收集A中的元素
+% Recollect elements of A by permutation u
 uA=A(u); 
-% 按置换v重新收集B中的元素
+% Recollect elements of B by permutation v
 vB=B(v);
-% 计算累计集合Sigma(u(A))
+% Compute cumulative set Sigma(u(A))
 SuA=SigmaSet(uA);
-% 计算累计集合Sigma(v(B))
+% Compute cumulative setSigma(v(B))
 SvB=SigmaSet(vB);
-% 按序合并Sigma(u(A)),Sigma(v(B))
+% Sigma(u(A)),Sigma(v(B))
 A_B=merging(SuA,SvB);
-% 计算步进差集
+% Calculate the step difference set
 F=DeltaSet(A_B);
-% 对F进行排序
+% Sort F
 F=sort(F);
-% 计算F和C的匹配程度
+% Calculate the match between F and C
 [fitnum,missnum]=matching(F,C);
 f=fitnum/(fitnum+missnum);
 return
@@ -270,7 +355,7 @@ end
 return
 
 function [T]=merging(A,B)
-% 合并两个有序集合A,B,并去掉末尾重复元素
+% Merge two ordered sets A,B, and remove the end repeating elements
 la=length(A);lb=length(B);
 T=[];
 i=1;j=1;k=1;
@@ -290,12 +375,12 @@ while (i<=la) || (j<=lb)
         end
     end
 end
-% 去掉末尾重复元素
+% Remove the trailing repeating element
 T(length(T))=[];
 return
 
 function [fitnum,missnum]=matching(F,C)
-% 计算两个有序集合F,C的匹配和失配分量个数
+% The number of matching and mismatch components of two ordered sets F and C is calculated
 fitnum=0;missnum=0;
 lf=length(F);lc=length(C);
 i=1;j=1;
@@ -319,7 +404,7 @@ end
 return
 
 function [w]=ddseq(A,B,C,u,v)
-% 计算双消化序列及, 返回C对应的置换w
+% Calculate the double digestion sequence and return the replacement w corresponding to C
 w=[];
 uA=[];vB=[];wC=[];
 %u
